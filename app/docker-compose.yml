@@ -1,0 +1,21 @@
+name: "tv-devops-assessment"
+
+services:
+  app:
+    build:
+      context: .
+      target: development
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+    develop:
+      watch:
+        - path: ./package.json
+          action: sync
+          target: /app/package.json
+        - path: ./package-lock.json
+          action: rebuild
+        - path: ./tsconfig.json
+          action: sync
+          target: /app/tsconfig.json
