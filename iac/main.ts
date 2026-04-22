@@ -53,6 +53,7 @@ class ExpressAppStack extends TerraformStack {
       const ecs = new EcsConstruct(this, "ecs", {
         provider: awsProvider,
         appName: config.appName,
+        region: config.region,
         vpcId: vpc.vpcId,
         privateSubnetIds: vpc.privateSubnetIds,
         ecsSecurityGroupId: securityGroups.ecsSecurityGroupId,

@@ -9,6 +9,7 @@ import { EcsService } from "@cdktf/provider-aws/lib/ecs-service";
 export interface EcsConstructConfig {
   provider: AwsProvider;
   appName: string;
+  region: string;
   vpcId: string;
   privateSubnetIds: string[];
   ecsSecurityGroupId: string;
@@ -72,7 +73,7 @@ export class EcsConstruct extends Construct {
             logDriver: "awslogs",
             options: {
               "awslogs-group": logGroup.name,
-              "awslogs-region": "${AWS::Region}",
+              "awslogs-region": config.region,
               "awslogs-stream-prefix": "ecs",
             },
           },
