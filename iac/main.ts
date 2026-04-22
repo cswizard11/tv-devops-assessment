@@ -4,7 +4,7 @@ import { AwsProvider } from "@cdktf/provider-aws/lib/provider";
 import { EcrConstruct } from "./constructs/ecr";
 import { VpcConstruct } from "./constructs/vpc";
 import { SecurityGroupsConstruct } from "./constructs/security-groups";
-// import { IamConstruct } from "./constructs/iam";
+import { IamConstruct } from "./constructs/iam";
 // import { EcsConstruct } from "./constructs/ecs";
 // import { AlbConstruct } from "./constructs/alb";
 import { getConfig } from "./config";
@@ -41,8 +41,13 @@ class ExpressAppStack extends TerraformStack {
       vpcId: vpc.vpcId,
     });
 
-    // TODO: Add remaining constructs
     // 4. IAM Roles
+    const iam = new IamConstruct(this, "iam", {
+      provider: awsProvider,
+      appName: config.appName,
+    });
+
+    // TODO: Add remaining constructs
     // 5. ECS Cluster and Service
     // 6. Application Load Balancer
   }
