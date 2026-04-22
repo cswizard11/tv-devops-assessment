@@ -1,3 +1,8 @@
+# Environment variables (contains secrets)
+.env
+.env.local
+.env.*.local
+
 # CDKTF generated provider bindings
 .gen/
 
