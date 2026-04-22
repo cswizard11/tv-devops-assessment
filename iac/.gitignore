@@ -1,2 +1,11 @@
 # CDKTF generated provider bindings
 .gen/
+
+# CDKTF synthesized Terraform output
+cdktf.out/
+cdktf.log
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+.terraform/
