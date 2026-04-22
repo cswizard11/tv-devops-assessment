@@ -96,8 +96,12 @@ jobs:
         if: steps.check-backend.outputs.exists == 'false'
         working-directory: iac
         env:
+          DEPLOY_MODE: ${{ github.event.inputs.deploy_mode || 'full' }}
           AWS_REGION: ${{ github.event.inputs.aws_region || secrets.AWS_REGION }}
+          ECR_REPOSITORY_NAME: ${{ github.event.inputs.ecr_repository_name || secrets.ECR_REPOSITORY_NAME }}
           APP_NAME: ${{ github.event.inputs.app_name || secrets.APP_NAME }}
+          DOMAIN_NAME: ${{ github.event.inputs.domain_name || secrets.DOMAIN_NAME }}
+          VPC_CIDR: ${{ github.event.inputs.vpc_cidr || secrets.VPC_CIDR }}
         run: npx cdktf deploy bootstrap --auto-approve
 
       - name: Deploy Main Infrastructure

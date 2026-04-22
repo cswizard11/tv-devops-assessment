@@ -9,7 +9,6 @@ import { EcsConstruct } from "./constructs/ecs";
 import { AlbConstruct } from "./constructs/alb";
 import { BootstrapStack } from "./bootstrap-stack";
 import { getConfig } from "./config";
-import { getBootstrapConfig } from "./bootstrap-config";
 
 class ExpressAppStack extends TerraformStack {
   constructor(scope: Construct, id: string) {
@@ -95,14 +94,15 @@ class ExpressAppStack extends TerraformStack {
 }
 
 const app = new App();
+
+// Load config - all env vars are provided by workflow
 const config = getConfig();
-const bootstrapConfig = getBootstrapConfig();
 
 // Create bootstrap stack (for S3 backend infrastructure)
 // This is run conditionally by the workflow only when needed
 new BootstrapStack(app, "bootstrap", {
-  appName: bootstrapConfig.appName,
-  region: bootstrapConfig.region,
+  region: config.region,
+  appName: config.appName,
 });
 
 // Create main application stack (uses S3 backend)
