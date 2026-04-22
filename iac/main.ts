@@ -1,4 +1,4 @@
-import { App, TerraformStack } from "cdktf";
+import { App, TerraformStack, S3Backend } from "cdktf";
 import { Construct } from "constructs";
 import { AwsProvider } from "@cdktf/provider-aws/lib/provider";
 import { EcrConstruct } from "./constructs/ecr";
@@ -7,6 +7,7 @@ import { SecurityGroupsConstruct } from "./constructs/security-groups";
 import { IamConstruct } from "./constructs/iam";
 import { EcsConstruct } from "./constructs/ecs";
 import { AlbConstruct } from "./constructs/alb";
+import { BootstrapStack } from "./bootstrap-stack";
 import { getConfig } from "./config";
 
 class ExpressAppStack extends TerraformStack {
@@ -18,6 +19,15 @@ class ExpressAppStack extends TerraformStack {
     const awsProvider = new AwsProvider(this, "aws", {
       region: config.region,
       alias: "main",
+    });
+
+    // Configure S3 backend for Terraform state
+    new S3Backend(this, {
+      bucket: `${config.appName}-terraform-state`,
+      key: "express-app-stack/terraform.tfstate",
+      region: config.region,
+      dynamodbTable: `${config.appName}-terraform-lock`,
+      encrypt: true,
     });
 
     // 1. ECR Repository (always created)
@@ -37,11 +47,15 @@ class ExpressAppStack extends TerraformStack {
       });
 
       // 3. Security Groups
-      const securityGroups = new SecurityGroupsConstruct(this, "security-groups", {
-        provider: awsProvider,
-        appName: config.appName,
-        vpcId: vpc.vpcId,
-      });
+      const securityGroups = new SecurityGroupsConstruct(
+        this,
+        "security-groups",
+        {
+          provider: awsProvider,
+          appName: config.appName,
+          vpcId: vpc.vpcId,
+        }
+      );
 
       // 4. IAM Roles
       const iam = new IamConstruct(this, "iam", {
@@ -80,5 +94,16 @@ class ExpressAppStack extends TerraformStack {
 }
 
 const app = new App();
+const config = getConfig();
+
+// Create bootstrap stack (for S3 backend infrastructure)
+// This is run conditionally by the workflow only when needed
+new BootstrapStack(app, "bootstrap", {
+  appName: config.appName,
+  region: config.region,
+});
+
+// Create main application stack (uses S3 backend)
 new ExpressAppStack(app, "express-app-stack");
+
 app.synth();

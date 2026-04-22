@@ -77,7 +77,30 @@ jobs:
         working-directory: iac
         run: npx cdktf get
 
-      - name: Deploy infrastructure
+      - name: Check if S3 Backend Exists
+        id: check-backend
+        env:
+          AWS_REGION: ${{ github.event.inputs.aws_region || secrets.AWS_REGION }}
+          APP_NAME: ${{ github.event.inputs.app_name || secrets.APP_NAME }}
+        run: |
+          BUCKET_NAME="${APP_NAME}-terraform-state"
+          if aws s3api head-bucket --bucket "$BUCKET_NAME" --region "$AWS_REGION" 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "S3 bucket $BUCKET_NAME already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "S3 bucket $BUCKET_NAME does not exist, will create bootstrap"
+          fi
+
+      - name: Deploy Bootstrap (Create S3 Backend)
+        if: steps.check-backend.outputs.exists == 'false'
+        working-directory: iac
+        env:
+          AWS_REGION: ${{ github.event.inputs.aws_region || secrets.AWS_REGION }}
+          APP_NAME: ${{ github.event.inputs.app_name || secrets.APP_NAME }}
+        run: npx cdktf deploy bootstrap --auto-approve
+
+      - name: Deploy Main Infrastructure
         working-directory: iac
         env:
           DEPLOY_MODE: ${{ github.event.inputs.deploy_mode || 'full' }}
@@ -86,4 +109,4 @@ jobs:
           APP_NAME: ${{ github.event.inputs.app_name || secrets.APP_NAME }}
           DOMAIN_NAME: ${{ github.event.inputs.domain_name || secrets.DOMAIN_NAME }}
           VPC_CIDR: ${{ github.event.inputs.vpc_cidr || secrets.VPC_CIDR }}
-        run: npx cdktf deploy --auto-approve
+        run: npx cdktf deploy express-app-stack --auto-approve
