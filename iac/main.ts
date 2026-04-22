@@ -3,7 +3,7 @@ import { Construct } from "constructs";
 import { AwsProvider } from "@cdktf/provider-aws/lib/provider";
 import { EcrConstruct } from "./constructs/ecr";
 import { VpcConstruct } from "./constructs/vpc";
-// import { SecurityGroupsConstruct } from "./constructs/security-groups";
+import { SecurityGroupsConstruct } from "./constructs/security-groups";
 // import { IamConstruct } from "./constructs/iam";
 // import { EcsConstruct } from "./constructs/ecs";
 // import { AlbConstruct } from "./constructs/alb";
@@ -34,8 +34,14 @@ class ExpressAppStack extends TerraformStack {
       availabilityZones: [`${config.region}a`, `${config.region}b`],
     });
 
-    // TODO: Add remaining constructs
     // 3. Security Groups
+    const securityGroups = new SecurityGroupsConstruct(this, "security-groups", {
+      provider: awsProvider,
+      appName: config.appName,
+      vpcId: vpc.vpcId,
+    });
+
+    // TODO: Add remaining constructs
     // 4. IAM Roles
     // 5. ECS Cluster and Service
     // 6. Application Load Balancer
