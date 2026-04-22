@@ -33,7 +33,7 @@ class ExpressAppStack extends TerraformStack {
         provider: awsProvider,
         appName: config.appName,
         vpcCidr: config.vpcCidr,
-        availabilityZones: [`${config.region}a`, `${config.region}b`],
+        availabilityZones: [`${config.region}a`, `${config.region}c`],
       });
 
       // 3. Security Groups
