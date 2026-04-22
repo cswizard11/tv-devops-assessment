@@ -2,6 +2,11 @@ import { App, TerraformStack } from "cdktf";
 import { Construct } from "constructs";
 import { AwsProvider } from "@cdktf/provider-aws/lib/provider";
 import { EcrConstruct } from "./constructs/ecr";
+import { VpcConstruct } from "./constructs/vpc";
+// import { SecurityGroupsConstruct } from "./constructs/security-groups";
+// import { IamConstruct } from "./constructs/iam";
+// import { EcsConstruct } from "./constructs/ecs";
+// import { AlbConstruct } from "./constructs/alb";
 import { getConfig } from "./config";
 
 class ExpressAppStack extends TerraformStack {
@@ -15,10 +20,25 @@ class ExpressAppStack extends TerraformStack {
       alias: "main",
     });
 
-    new EcrConstruct(this, "ecr", {
+    // 1. ECR Repository
+    const ecr = new EcrConstruct(this, "ecr", {
       provider: awsProvider,
       repositoryName: config.repositoryName,
     });
+
+    // 2. VPC with subnets
+    const vpc = new VpcConstruct(this, "vpc", {
+      provider: awsProvider,
+      appName: config.appName,
+      vpcCidr: config.vpcCidr,
+      availabilityZones: [`${config.region}a`, `${config.region}b`],
+    });
+
+    // TODO: Add remaining constructs
+    // 3. Security Groups
+    // 4. IAM Roles
+    // 5. ECS Cluster and Service
+    // 6. Application Load Balancer
   }
 }
 
