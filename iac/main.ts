@@ -6,7 +6,7 @@ import { VpcConstruct } from "./constructs/vpc";
 import { SecurityGroupsConstruct } from "./constructs/security-groups";
 import { IamConstruct } from "./constructs/iam";
 import { EcsConstruct } from "./constructs/ecs";
-// import { AlbConstruct } from "./constructs/alb";
+import { AlbConstruct } from "./constructs/alb";
 import { getConfig } from "./config";
 
 class ExpressAppStack extends TerraformStack {
@@ -62,8 +62,16 @@ class ExpressAppStack extends TerraformStack {
       memory: "512",
     });
 
-    // TODO: Add remaining constructs
     // 6. Application Load Balancer
+    const alb = new AlbConstruct(this, "alb", {
+      provider: awsProvider,
+      appName: config.appName,
+      vpcId: vpc.vpcId,
+      publicSubnetIds: vpc.publicSubnetIds,
+      albSecurityGroupId: securityGroups.albSecurityGroupId,
+      targetGroupArn: ecs.targetGroupArn,
+      domainName: config.domainName,
+    });
   }
 }
 
