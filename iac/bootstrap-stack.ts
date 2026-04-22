@@ -6,8 +6,8 @@ import { S3BucketVersioningA } from "@cdktf/provider-aws/lib/s3-bucket-versionin
 import { DynamodbTable } from "@cdktf/provider-aws/lib/dynamodb-table";
 
 export interface BootstrapStackConfig {
-  appName: string;
   region: string;
+  appName: string;
 }
 
 export class BootstrapStack extends TerraformStack {
