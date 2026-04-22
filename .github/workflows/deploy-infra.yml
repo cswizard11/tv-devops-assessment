@@ -66,6 +66,9 @@ jobs:
         with:
           node-version: "24"
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
       - name: Install dependencies
         working-directory: iac
         run: npm ci
