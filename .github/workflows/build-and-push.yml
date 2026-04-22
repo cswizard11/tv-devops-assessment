@@ -1,0 +1,83 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [main]
+    paths: ["app/**"]
+  workflow_dispatch:
+    inputs:
+      force_redeploy:
+        description: "Force ECS redeployment"
+        required: true
+        default: false
+        type: boolean
+      aws_access_key_id:
+        description: "AWS Access Key ID"
+        required: false
+        type: string
+      aws_secret_access_key:
+        description: "AWS Secret Access Key"
+        required: false
+        type: string
+      aws_region:
+        description: "AWS Region"
+        required: false
+        type: string
+      ecr_repository_name:
+        description: "ECR Repository Name"
+        required: false
+        type: string
+      app_name:
+        description: "Application Name (for ECS cluster/service)"
+        required: false
+        type: string
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'push' && 'production' || '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        id: aws-creds
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ github.event.inputs.aws_access_key_id || secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ github.event.inputs.aws_secret_access_key || secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ github.event.inputs.aws_region || secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.aws-creds.outputs.aws-account-id }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          ECR_REPOSITORY: ${{ github.event.inputs.ecr_repository_name || secrets.ECR_REPOSITORY_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        working-directory: app
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "Pushed images:"
+          echo "  $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "  $ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+      - name: Force ECS redeployment
+        if: github.event_name == 'push' || github.event.inputs.force_redeploy == 'true'
+        env:
+          APP_NAME: ${{ github.event.inputs.app_name || secrets.APP_NAME }}
+          AWS_REGION: ${{ github.event.inputs.aws_region || secrets.AWS_REGION }}
+        run: |
+          echo "Forcing ECS service redeployment for $APP_NAME"
+          aws ecs update-service \
+            --cluster $APP_NAME-cluster \
+            --service $APP_NAME-service \
+            --force-new-deployment \
+            --region $AWS_REGION
+          echo "Redeployment triggered successfully"
