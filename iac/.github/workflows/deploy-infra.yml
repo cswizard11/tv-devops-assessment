@@ -1,0 +1,86 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "iac/**"
+      - "!iac/README.md"
+      - "!iac/template.env"
+  workflow_dispatch:
+    inputs:
+      deploy_mode:
+        description: "Deploy mode (overrides default)"
+        required: false
+        default: ""
+        type: choice
+        options: ["", "ecr-only", "full"]
+      aws_region:
+        description: "AWS Region"
+        required: false
+        type: string
+      aws_access_key_id:
+        description: "AWS Access Key ID"
+        required: false
+        type: string
+      aws_secret_access_key:
+        description: "AWS Secret Access Key"
+        required: false
+        type: string
+      ecr_repository_name:
+        description: "ECR Repository Name"
+        required: false
+        type: string
+      app_name:
+        description: "Application Name"
+        required: false
+        type: string
+      domain_name:
+        description: "Domain Name"
+        required: false
+        type: string
+      vpc_cidr:
+        description: "VPC CIDR (optional)"
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Only require environment approval on push, not on manual trigger
+    environment: ${{ github.event_name == 'push' && 'production' || '' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ github.event.inputs.aws_access_key_id || secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ github.event.inputs.aws_secret_access_key || secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ github.event.inputs.aws_region || secrets.AWS_REGION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        working-directory: iac
+        run: npm ci
+
+      - name: Generate CDKTF bindings
+        working-directory: iac
+        run: npx cdktf get
+
+      - name: Deploy infrastructure
+        working-directory: iac
+        env:
+          DEPLOY_MODE: ${{ github.event.inputs.deploy_mode || 'full' }}
+          AWS_REGION: ${{ github.event.inputs.aws_region || secrets.AWS_REGION }}
+          ECR_REPOSITORY_NAME: ${{ github.event.inputs.ecr_repository_name || secrets.ECR_REPOSITORY_NAME }}
+          APP_NAME: ${{ github.event.inputs.app_name || secrets.APP_NAME }}
+          DOMAIN_NAME: ${{ github.event.inputs.domain_name || secrets.DOMAIN_NAME }}
+          VPC_CIDR: ${{ github.event.inputs.vpc_cidr || secrets.VPC_CIDR }}
+        run: npx cdktf deploy --auto-approve
