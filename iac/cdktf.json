@@ -1,5 +1,8 @@
 {
   "language": "typescript",
   "app": "npx ts-node main.ts",
-  "projectId": "tv-devops-express-iac"
+  "projectId": "tv-devops-express-iac",
+  "terraformProviders": [
+    "hashicorp/aws@~> 6.41"
+  ]
 }
