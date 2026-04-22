@@ -4,6 +4,7 @@ export interface AppConfig {
   appName: string;
   domainName: string;
   vpcCidr: string;
+  deployMode: "ecr-only" | "full";
 }
 
 function requireEnv(name: string): string {
@@ -15,11 +16,17 @@ function requireEnv(name: string): string {
 }
 
 export function getConfig(): AppConfig {
+  const deployMode = process.env["DEPLOY_MODE"] || "full";
+  if (deployMode !== "ecr-only" && deployMode !== "full") {
+    throw new Error("DEPLOY_MODE must be either 'ecr-only' or 'full'");
+  }
+
   return {
     region: requireEnv("AWS_REGION"),
     repositoryName: requireEnv("ECR_REPOSITORY_NAME"),
     appName: requireEnv("APP_NAME"),
     domainName: requireEnv("DOMAIN_NAME"),
     vpcCidr: process.env["VPC_CIDR"] || "10.0.0.0/16",
+    deployMode: deployMode as "ecr-only" | "full",
   };
 }
