@@ -5,7 +5,7 @@ import { EcrConstruct } from "./constructs/ecr";
 import { VpcConstruct } from "./constructs/vpc";
 import { SecurityGroupsConstruct } from "./constructs/security-groups";
 import { IamConstruct } from "./constructs/iam";
-// import { EcsConstruct } from "./constructs/ecs";
+import { EcsConstruct } from "./constructs/ecs";
 // import { AlbConstruct } from "./constructs/alb";
 import { getConfig } from "./config";
 
@@ -47,8 +47,22 @@ class ExpressAppStack extends TerraformStack {
       appName: config.appName,
     });
 
-    // TODO: Add remaining constructs
     // 5. ECS Cluster and Service
+    const ecs = new EcsConstruct(this, "ecs", {
+      provider: awsProvider,
+      appName: config.appName,
+      vpcId: vpc.vpcId,
+      privateSubnetIds: vpc.privateSubnetIds,
+      ecsSecurityGroupId: securityGroups.ecsSecurityGroupId,
+      taskExecutionRoleArn: iam.taskExecutionRoleArn,
+      taskRoleArn: iam.taskRoleArn,
+      repositoryUrl: ecr.repositoryUrl,
+      containerPort: 3000,
+      cpu: "256",
+      memory: "512",
+    });
+
+    // TODO: Add remaining constructs
     // 6. Application Load Balancer
   }
 }
