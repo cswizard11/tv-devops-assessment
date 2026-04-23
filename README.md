@@ -1,5 +1,10 @@
 # 🚀 DevOps Assessment – Full Lifecycle Challenge
 
+[![Build and Push](https://github.com/cswizard11/tv-devops-assessment/workflows/Build%20and%20Push%20Docker%20Image/badge.svg)](https://github.com/cswizard11/tv-devops-assessment/actions/workflows/build-and-push.yml)
+[![Deploy Infrastructure](https://github.com/cswizard11/tv-devops-assessment/workflows/Deploy%20Infrastructure/badge.svg)](https://github.com/cswizard11/tv-devops-assessment/actions/workflows/deploy-infra.yml)
+
+**Live URL:** https://tv-devops.inapeartree.net/
+
 **Estimated Time:** 4–8 hours
 **Level:** Intermediate
 **Focus Areas:** Dockerization · Infrastructure as Code · CI/CD · AWS

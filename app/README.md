@@ -2,11 +2,13 @@
 
 A containerized Express.js + TypeScript application with local development and production deployment support.
 
+**Live URL:** https://tv-devops.inapeartree.net/
+
 ## Prerequisites
 
 - Docker (v24.0+ recommended)
 - Docker Compose (v2.22+ for Docker Watch support)
-- Node.js (v20 LTS) - only needed for local development without Docker
+- Node.js (v24) - only needed for local development without Docker
 
 ## Local Development
 
@@ -14,7 +16,9 @@ A containerized Express.js + TypeScript application with local development and p
 
 Start the development server with hot reload:
 
-    docker compose watch
+```bash
+docker compose watch
+```
 
 The application will be available at http://localhost:3000.
 
@@ -28,15 +32,27 @@ The application will be available at http://localhost:3000.
 
 Health check endpoint:
 
-    curl http://localhost:3000/health
+```bash
+curl http://localhost:3000/health
+```
 
-Expected response: {"status":"healthy"}
+Expected response:
+
+```json
+{ "status": "healthy" }
+```
 
 Main endpoint:
 
-    curl http://localhost:3000/
+```bash
+curl http://localhost:3000/
+```
 
-Expected response: Hello from Express + TypeScript!
+Expected response:
+
+```
+Hello from Express + TypeScript!
+```
 
 ## Production Build
 
@@ -44,11 +60,15 @@ Expected response: Hello from Express + TypeScript!
 
 Build production-optimized image:
 
-    docker build --target production -t express-app:prod .
+```bash
+docker build --target production -t express-app:prod .
+```
 
 Run production container:
 
-    docker run -d -p 3000:3000 --name express-prod express-app:prod
+```bash
+docker run -d -p 3000:3000 --name express-prod express-app:prod
+```
 
 ### Production Image Details
 
@@ -64,13 +84,17 @@ The production image is optimized for minimal size and security:
 
 Test health endpoint:
 
-    curl http://localhost:3000/health
+```bash
+curl http://localhost:3000/health
+```
 
 Check container contents:
 
-    docker exec express-prod ls -la /app/
+```bash
+docker exec express-prod ls -la /app/
+```
 
-Should show: dist/ and node_modules/ only
+Should show: `dist/` and `node_modules/` only
 
 ## Docker Architecture
 
@@ -92,3 +116,76 @@ Should show: dist/ and node_modules/ only
 | Dev Dependencies | All         | None                |
 | Image Size       | ~200MB      | ~100MB              |
 | Entry Point      | ts-node-dev | node dist/server.js |
+
+## Dockerfile Explained
+
+The Dockerfile uses a multi-stage build strategy to optimize image size and security.
+
+### Stage 1: Base
+
+```dockerfile
+FROM node:lts-alpine as base
+```
+
+- Alpine Linux with Node.js LTS
+- Sets working directory to `/app`
+- Copies `package.json` and `package-lock.json` for dependency caching
+
+### Stage 2: Development
+
+```dockerfile
+FROM base as development
+```
+
+- Installs all dependencies (including dev dependencies)
+- Copies TypeScript configuration
+- Runs with `ts-node-dev` for hot reload during development
+- Used by `docker-compose.yml` for local development
+
+### Stage 3: Production Dependencies
+
+```dockerfile
+FROM base as prod-deps
+```
+
+- Installs **only** production dependencies (`npm ci --only=production`)
+- Creates a cacheable layer with just the runtime dependencies
+- ~68 packages instead of ~140
+
+### Stage 4: Builder
+
+```dockerfile
+FROM prod-deps as builder
+```
+
+- Extends `prod-deps` stage to reuse its cached `node_modules`
+- Installs dev dependencies needed for compilation
+- Compiles TypeScript to JavaScript in `dist/` directory
+
+### Stage 5: Production
+
+```dockerfile
+FROM node:lts-alpine as production
+```
+
+- **Minimal runtime image** (~100MB)
+- Copies only production `node_modules` from `prod-deps` stage
+- Copies compiled JavaScript from `builder` stage
+- No source code, no package files, no dev tools
+- Runs with `node dist/server.js`
+
+### Key Optimizations
+
+| Technique           | Benefit                                                 |
+| ------------------- | ------------------------------------------------------- |
+| Multi-stage         | Separation of build and runtime environments            |
+| Layer caching       | `package.json` changes trigger rebuild only when needed |
+| Minimal base        | Alpine Linux is ~5MB vs ~100MB for full Debian          |
+| No dev tools        | Production image has zero build dependencies            |
+| Copy only artifacts | No source code or config files in final image           |
+
+## Deployment
+
+This application is deployed via GitHub Actions to AWS ECS. See the `iac/README.md` for full CI/CD documentation and required secrets configuration.
+
+[![Build and Push](https://github.com/cswizard11/tv-devops-assessment/workflows/Build%20and%20Push%20Docker%20Image/badge.svg)](https://github.com/cswizard11/tv-devops-assessment/actions/workflows/build-and-push.yml)
